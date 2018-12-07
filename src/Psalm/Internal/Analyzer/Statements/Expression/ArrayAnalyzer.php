@@ -117,7 +117,7 @@ class ArrayAnalyzer
                 return false;
             }
 
-            if ($item_value_type && $item_value_type->isMixed() && !$can_create_objectlike) {
+            if ($item_value_type && $item_value_type->hasMixed() && !$can_create_objectlike) {
                 continue;
             }
 

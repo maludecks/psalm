@@ -90,7 +90,7 @@ class ArrayAssignmentAnalyzer
 
         $root_type = isset($root_array_expr->inferredType) ? $root_array_expr->inferredType : Type::getMixed();
 
-        if ($root_type->isMixed()) {
+        if ($root_type->hasMixed()) {
             return null;
         }
 
@@ -210,7 +210,7 @@ class ArrayAssignmentAnalyzer
             $current_type = $child_stmt->inferredType;
             $current_dim = $child_stmt->dim;
 
-            if ($child_stmt->var->inferredType->isMixed()) {
+            if ($child_stmt->var->inferredType->hasMixed()) {
                 $full_var_id = false;
                 break;
             }

@@ -57,13 +57,22 @@ class TypeCombination
     /** @var bool */
     private $objectlike_sealed = true;
 
-    /** @var array<int, Atomic\TLiteralString>|null */
+    /** @var bool */
+    private $has_mixed = false;
+
+    /** @var bool */
+    private $non_empty_mixed = false;
+
+    /** @var ?bool */
+    private $mixed_from_loop_isset = null;
+
+    /** @var array<string, Atomic\TLiteralString>|null */
     private $strings = [];
 
-    /** @var array<int, Atomic\TLiteralInt>|null */
+    /** @var array<string, Atomic\TLiteralInt>|null */
     private $ints = [];
 
-    /** @var array<int, Atomic\TLiteralFloat>|null */
+    /** @var array<string, Atomic\TLiteralFloat>|null */
     private $floats = [];
 
     /**
@@ -109,24 +118,10 @@ class TypeCombination
 
         $from_docblock = false;
 
-        $has_null = false;
-        $has_mixed = false;
-        $has_non_mixed = false;
-
         foreach ($types as $type) {
             $from_docblock = $from_docblock || $type->from_docblock;
 
             $result = self::scrapeTypeProperties($type, $combination, $overwrite_empty_array, $literal_limit);
-
-            if ($type instanceof TNull) {
-                $has_null = true;
-            }
-
-            if ($type instanceof TMixed) {
-                $has_mixed = true;
-            } else {
-                $has_non_mixed = true;
-            }
 
             if ($result) {
                 if ($from_docblock) {
@@ -135,14 +130,6 @@ class TypeCombination
 
                 return $result;
             }
-        }
-
-        if ($has_null && $has_mixed) {
-            return Type::getMixed();
-        }
-
-        if (!$has_non_mixed) {
-            return Type::getMixed(true);
         }
 
         if (count($combination->value_types) === 1
@@ -190,29 +177,35 @@ class TypeCombination
 
         $new_types = [];
 
-        if (count($combination->objectlike_entries) &&
-            (!isset($combination->type_params['array'])
-                || $combination->type_params['array'][1]->isEmpty())
-        ) {
-            if (!$overwrite_empty_array
-                && (isset($combination->type_params['array'])
-                    && $combination->type_params['array'][1]->isEmpty())
-            ) {
-                foreach ($combination->objectlike_entries as $objectlike_entry) {
-                    $objectlike_entry->possibly_undefined = true;
+
+        if (count($combination->objectlike_entries)) {
+            if (!$combination->has_mixed || $combination->mixed_from_loop_isset) {
+                if (!isset($combination->type_params['array'])
+                    || $combination->type_params['array'][1]->isEmpty()
+                ) {
+                    if (!$overwrite_empty_array
+                        && (isset($combination->type_params['array'])
+                            && $combination->type_params['array'][1]->isEmpty())
+                    ) {
+                        foreach ($combination->objectlike_entries as $objectlike_entry) {
+                            $objectlike_entry->possibly_undefined = true;
+                        }
+                    }
+
+                    $objectlike = new ObjectLike($combination->objectlike_entries);
+
+                    if ($combination->objectlike_sealed && !isset($combination->type_params['array'])) {
+                        $objectlike->sealed = true;
+                    }
+
+                    $new_types[] = $objectlike;
+
+                    // if we're merging an empty array with an object-like, clobber empty array
+                    unset($combination->type_params['array']);
                 }
+            } else {
+                $combination->type_params['array'] = [Type::getMixed(), Type::getMixed()];
             }
-
-            $objectlike = new ObjectLike($combination->objectlike_entries);
-
-            if ($combination->objectlike_sealed && !isset($combination->type_params['array'])) {
-                $objectlike->sealed = true;
-            }
-
-            $new_types[] = $objectlike;
-
-            // if we're merging an empty array with an object-like, clobber empty array
-            unset($combination->type_params['array']);
         }
 
         foreach ($combination->type_params as $generic_type => $generic_type_params) {
@@ -278,24 +271,32 @@ class TypeCombination
         }
 
         if ($combination->strings) {
-            $new_types = array_merge($new_types, $combination->strings);
+            $new_types = array_merge($new_types, array_values($combination->strings));
         }
 
         if ($combination->ints) {
-            $new_types = array_merge($new_types, $combination->ints);
+            $new_types = array_merge($new_types, array_values($combination->ints));
         }
 
         if ($combination->floats) {
-            $new_types = array_merge($new_types, $combination->floats);
+            $new_types = array_merge($new_types, array_values($combination->floats));
         }
 
         foreach ($combination->value_types as $type) {
-            if (!($type instanceof TEmpty)
-                || (count($combination->value_types) === 1
-                    && !count($new_types))
+            if ($type instanceof TMixed
+                && $combination->mixed_from_loop_isset
+                && (count($combination->value_types) > 1 || count($new_types))
             ) {
-                $new_types[] = $type;
+                continue;
             }
+
+            if ($type instanceof TEmpty
+                && (count($combination->value_types) > 1 || count($new_types))
+            ) {
+                continue;
+            }
+
+            $new_types[] = $type;
         }
 
         $union_type = new Union($new_types);
@@ -320,11 +321,24 @@ class TypeCombination
         int $literal_limit
     ) {
         if ($type instanceof TMixed) {
-            if ($type->from_isset || $type instanceof TEmptyMixed) {
-                return null;
+            $combination->has_mixed = true;
+            if ($type->from_loop_isset) {
+                if ($combination->mixed_from_loop_isset === null) {
+                    $combination->mixed_from_loop_isset = true;
+                } else {
+                    return null;
+                }
+            } else {
+                $combination->mixed_from_loop_isset = false;
             }
 
-            return Type::getMixed();
+            if ($type instanceof TEmptyMixed) {
+                if ($combination->non_empty_mixed) {
+                    return null;
+                }
+            } else {
+                $combination->non_empty_mixed = true;
+            }
         }
 
         // deal with false|bool => bool
@@ -405,7 +419,7 @@ class TypeCombination
             if ($type instanceof TString) {
                 if ($type instanceof TLiteralString) {
                     if ($combination->strings !== null && count($combination->strings) < $literal_limit) {
-                        $combination->strings[] = $type;
+                        $combination->strings[$type_key] = $type;
                     } else {
                         $combination->strings = null;
 
@@ -436,7 +450,7 @@ class TypeCombination
             } elseif ($type instanceof TInt) {
                 if ($type instanceof TLiteralInt) {
                     if ($combination->ints !== null && count($combination->ints) < $literal_limit) {
-                        $combination->ints[] = $type;
+                        $combination->ints[$type_key] = $type;
                     } else {
                         $combination->ints = null;
                         $combination->value_types['int'] = new TInt();
@@ -448,7 +462,7 @@ class TypeCombination
             } elseif ($type instanceof TFloat) {
                 if ($type instanceof TLiteralFloat) {
                     if ($combination->floats !== null && count($combination->floats) < $literal_limit) {
-                        $combination->floats[] = $type;
+                        $combination->floats[$type_key] = $type;
                     } else {
                         $combination->floats = null;
                         $combination->value_types['float'] = new TFloat();

@@ -48,7 +48,8 @@ class TypeReconciliationTest extends TestCase
             $type,
             Type::parseString($string),
             null,
-            $this->statements_analyzer
+            $this->statements_analyzer,
+            false
         );
 
         $this->assertSame(

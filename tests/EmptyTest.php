@@ -12,11 +12,11 @@ class EmptyTest extends TestCase
     public function providerValidCodeParse()
     {
         return [
-            'empty' => [
+            'ifNotUndefinedAndEmpty' => [
                 '<?php
                     $a = !empty($b) ? $b : null;',
                 'assertions' => [
-                    '$a' => 'mixed',
+                    '$a' => 'mixed|null',
                 ],
                 'error_levels' => ['MixedAssignment'],
             ],
