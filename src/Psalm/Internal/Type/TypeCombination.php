@@ -61,6 +61,9 @@ class TypeCombination
     private $has_mixed = false;
 
     /** @var bool */
+    private $empty_mixed = false;
+
+    /** @var bool */
     private $non_empty_mixed = false;
 
     /** @var ?bool */
@@ -175,8 +178,11 @@ class TypeCombination
             $combination->value_types['bool'] = new TBool();
         }
 
-        $new_types = [];
+        if ($combination->empty_mixed && $combination->non_empty_mixed) {
+            $combination->value_types['mixed'] = new TMixed($combination->mixed_from_loop_isset);
+        }
 
+        $new_types = [];
 
         if (count($combination->objectlike_entries)) {
             if (!$combination->has_mixed || $combination->mixed_from_loop_isset) {
@@ -332,11 +338,20 @@ class TypeCombination
                 $combination->mixed_from_loop_isset = false;
             }
 
-            if ($type instanceof TEmptyMixed) {
+            if ($type instanceof TNonEmptyMixed) {
+                $combination->non_empty_mixed = true;
+
+                if ($combination->empty_mixed) {
+                    return null;
+                }
+            } elseif ($type instanceof TEmptyMixed) {
+                $combination->empty_mixed = true;
+
                 if ($combination->non_empty_mixed) {
                     return null;
                 }
             } else {
+                $combination->empty_mixed = true;
                 $combination->non_empty_mixed = true;
             }
         }

@@ -481,6 +481,15 @@ class RedundantConditionTest extends TestCase
                 [],
                 'error_levels' => ['MissingParamType'],
             ],
+            'notAlwaysTrueBinaryOp' => [
+                '<?php
+                    function foo ($a) : void {
+                        if (!$a) {}
+                        $b = $a && rand(0, 1);
+                    }',
+                [],
+                'error_levels' => ['MissingParamType']
+            ],
         ];
     }
 
@@ -766,6 +775,15 @@ class RedundantConditionTest extends TestCase
                     $i = 5;
                     echo $i !== 3;',
                 'error_message' => 'RedundantCondition',
+            ],
+            'alwaysTrueBinaryOp' => [
+                '<?php
+                    function foo ($a) : void {
+                        if (!$a) return;
+                        $b = $a && rand(0, 1);
+                    }',
+                'error_message' => 'RedundantCondition',
+                'error_levels' => ['MissingParamType']
             ],
         ];
     }

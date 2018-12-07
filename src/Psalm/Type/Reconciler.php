@@ -383,10 +383,45 @@ class Reconciler
             $did_remove_type = $existing_var_type->hasDefinitelyNumericType(false);
 
             if ($existing_var_type->hasMixed()) {
+                if ($existing_var_atomic_types['mixed'] instanceof Type\Atomic\TNonEmptyMixed) {
+                    if ($code_location
+                        && $key
+                        && IssueBuffer::accepts(
+                            new ParadoxicalCondition(
+                                'Found a paradox when evaluating ' . $key
+                                    . ' and trying to reconcile it with a ' . $new_var_type . ' assertion',
+                                $code_location
+                            ),
+                            $suppressed_issues
+                        )
+                    ) {
+                        // fall through
+                    }
+
+                    return Type::getMixed();
+                }
+
                 if (!$existing_var_atomic_types['mixed'] instanceof Type\Atomic\TEmptyMixed) {
                     $did_remove_type = true;
-                    $existing_var_type->removeType('mixed');
                     $existing_var_type->addType(new Type\Atomic\TEmptyMixed);
+                } elseif ($existing_var_type->isMixed()) {
+                    if ($code_location
+                        && $key
+                        && IssueBuffer::accepts(
+                            new RedundantCondition(
+                                'Found a redundant condition when evaluating ' . $key
+                                    . ' and trying to reconcile it with a ' . $new_var_type . ' assertion',
+                                $code_location
+                            ),
+                            $suppressed_issues
+                        )
+                    ) {
+                        // fall through
+                    }
+                }
+
+                if ($existing_var_type->isMixed()) {
+                    return $existing_var_type;
                 }
             }
 
@@ -1161,13 +1196,20 @@ class Reconciler
         }
 
         if ($new_var_type === 'falsy' || $new_var_type === 'empty') {
+            $did_remove_type = $existing_var_type->hasDefinitelyNumericType(false)
+                || $existing_var_type->isEmpty()
+                || $existing_var_type->hasType('bool')
+                || $existing_var_type->possibly_undefined
+                || $existing_var_type->possibly_undefined_from_try;
+
             if ($existing_var_type->hasMixed()) {
                 if ($existing_var_atomic_types['mixed'] instanceof Type\Atomic\TEmptyMixed) {
                     if ($code_location
                         && $key
                         && IssueBuffer::accepts(
                             new ParadoxicalCondition(
-                                'Found a redundant condition when evaluating ' . $key,
+                                'Found a paradox when evaluating ' . $key
+                                    . ' and trying to reconcile it with a non-' . $new_var_type . ' assertion',
                                 $code_location
                             ),
                             $suppressed_issues
@@ -1177,6 +1219,25 @@ class Reconciler
                     }
 
                     return Type::getMixed();
+                }
+
+                if (!$existing_var_atomic_types['mixed'] instanceof Type\Atomic\TNonEmptyMixed) {
+                    $did_remove_type = true;
+                    $existing_var_type->addType(new Type\Atomic\TNonEmptyMixed);
+                } elseif ($existing_var_type->isMixed()) {
+                    if ($code_location
+                        && $key
+                        && IssueBuffer::accepts(
+                            new RedundantCondition(
+                                'Found a redundant condition when evaluating ' . $key
+                                    . ' and trying to reconcile it with a non-' . $new_var_type . ' assertion',
+                                $code_location
+                            ),
+                            $suppressed_issues
+                        )
+                    ) {
+                        // fall through
+                    }
                 }
 
                 if ($existing_var_type->isMixed()) {
@@ -1205,13 +1266,6 @@ class Reconciler
 
                 return Type::getMixed();
             }
-
-            $did_remove_type = $existing_var_type->hasDefinitelyNumericType(false)
-                || $existing_var_type->hasMixed()
-                || $existing_var_type->isEmpty()
-                || $existing_var_type->hasType('bool')
-                || $existing_var_type->possibly_undefined
-                || $existing_var_type->possibly_undefined_from_try;
 
             if ($existing_var_type->hasType('null')) {
                 $did_remove_type = true;
