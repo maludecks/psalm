@@ -231,7 +231,7 @@ class PropertyFetchAnalyzer
                 continue;
             }
 
-            if ($lhs_type_part instanceof TMixed) {
+            if ($lhs_type_part instanceof Type\Atomic\TMixed) {
                 $stmt->inferredType = Type::getMixed();
                 continue;
             }

@@ -380,11 +380,15 @@ class Reconciler
         $existing_var_atomic_types = $existing_var_type->getTypes();
 
         if ($new_var_type === 'falsy' || $new_var_type === 'empty') {
-            if ($existing_var_type->hasMixed()) {
-                return new Type\Union([new Type\Atomic\TEmptyMixed]);
-            }
-
             $did_remove_type = $existing_var_type->hasDefinitelyNumericType(false);
+
+            if ($existing_var_type->hasMixed()) {
+                if (!$existing_var_atomic_types['mixed'] instanceof Type\Atomic\TEmptyMixed) {
+                    $did_remove_type = true;
+                    $existing_var_type->removeType('mixed');
+                    $existing_var_type->addType(new Type\Atomic\TEmptyMixed);
+                }
+            }
 
             if ($existing_var_type->hasType('bool')) {
                 $did_remove_type = true;
@@ -1175,7 +1179,9 @@ class Reconciler
                     return Type::getMixed();
                 }
 
-                return $existing_var_type;
+                if ($existing_var_type->isMixed()) {
+                    return $existing_var_type;
+                }
             }
 
             if ($is_strict_equality && $new_var_type === 'empty') {
@@ -1201,6 +1207,7 @@ class Reconciler
             }
 
             $did_remove_type = $existing_var_type->hasDefinitelyNumericType(false)
+                || $existing_var_type->hasMixed()
                 || $existing_var_type->isEmpty()
                 || $existing_var_type->hasType('bool')
                 || $existing_var_type->possibly_undefined
