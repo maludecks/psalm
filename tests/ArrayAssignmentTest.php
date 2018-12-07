@@ -954,6 +954,16 @@ class ArrayAssignmentTest extends TestCase
                     '$out[\'attr\'][\'bar\']' => 'int'
                 ],
             ],
+            'arrayAssignmentOnMixedArray' => [
+                '<?php
+                    function foo(array $arr) : void {
+                        $arr["a"] = 1;
+
+                        foreach ($arr["b"] as $b) {}
+                    }',
+                'assertions' => [],
+                'error_levels' => ['MixedAssignment'],
+            ],
         ];
     }
 

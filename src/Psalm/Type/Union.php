@@ -618,7 +618,7 @@ class Union
          */
         return isset($this->types['mixed'])
             && !$this->types['mixed']->from_loop_isset
-            && !$this->types['mixed'] instanceof Type\Atomic\TEmptyMixed;
+            && get_class($this->types['mixed']) === Type\Atomic\TMixed::class;
     }
 
     /**

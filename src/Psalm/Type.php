@@ -955,6 +955,7 @@ abstract class Type
         Union $type_1,
         Union $type_2,
         bool $overwrite_empty_array = false,
+        bool $allow_mixed_union = true,
         int $literal_limit = 500
     ) {
         if ($type_1->isVanillaMixed() && $type_2->isVanillaMixed()) {
@@ -978,6 +979,7 @@ abstract class Type
                     array_values($type_2->getTypes())
                 ),
                 $overwrite_empty_array,
+                $allow_mixed_union,
                 $literal_limit
             );
 

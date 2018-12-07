@@ -97,6 +97,7 @@ class TypeCombination
     public static function combineTypes(
         array $types,
         bool $overwrite_empty_array = false,
+        bool $allow_mixed_union = true,
         int $literal_limit = 500
     ) {
         if (in_array(null, $types, true)) {
@@ -124,7 +125,13 @@ class TypeCombination
         foreach ($types as $type) {
             $from_docblock = $from_docblock || $type->from_docblock;
 
-            $result = self::scrapeTypeProperties($type, $combination, $overwrite_empty_array, $literal_limit);
+            $result = self::scrapeTypeProperties(
+                $type,
+                $combination,
+                $overwrite_empty_array,
+                $allow_mixed_union,
+                $literal_limit
+            );
 
             if ($result) {
                 if ($from_docblock) {
@@ -250,12 +257,14 @@ class TypeCombination
                     $generic_type_params[0] = Type::combineUnionTypes(
                         $generic_type_params[0],
                         $objectlike_key_type,
-                        $overwrite_empty_array
+                        $overwrite_empty_array,
+                        $allow_mixed_union
                     );
                     $generic_type_params[1] = Type::combineUnionTypes(
                         $generic_type_params[1],
                         $objectlike_generic_type,
-                        $overwrite_empty_array
+                        $overwrite_empty_array,
+                        $allow_mixed_union
                     );
                 }
 
@@ -324,6 +333,7 @@ class TypeCombination
         Atomic $type,
         TypeCombination $combination,
         bool $overwrite_empty_array,
+        bool $allow_mixed_union,
         int $literal_limit
     ) {
         if ($type instanceof TMixed) {
@@ -353,6 +363,10 @@ class TypeCombination
             } else {
                 $combination->empty_mixed = true;
                 $combination->non_empty_mixed = true;
+            }
+
+            if (!$allow_mixed_union) {
+                return Type::getMixed();
             }
         }
 
