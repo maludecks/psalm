@@ -8,6 +8,6 @@ class TNonEmptyMixed extends TMixed
      */
     public function getId()
     {
-        return 'nonempty-mixed';
+        return 'non-empty-mixed';
     }
 }

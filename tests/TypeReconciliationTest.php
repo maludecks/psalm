@@ -194,7 +194,7 @@ class TypeReconciliationTest extends TestCase
             'notEmptyWithMyObject' => ['MyObject', '!falsy', 'MyObject'],
             'notEmptyWithMyObjectPipeNull' => ['MyObject', '!falsy', 'MyObject|null'],
             'notEmptyWithMyObjectPipeFalse' => ['MyObject', '!falsy', 'MyObject|false'],
-            'notEmptyWithMixed' => ['nonempty-mixed', '!falsy', 'mixed'],
+            'notEmptyWithMixed' => ['non-empty-mixed', '!falsy', 'mixed'],
             // @todo in the future this should also work
             //'notEmptyWithMyObjectFalseTrue' => ['MyObject|true', '!falsy', 'MyObject|bool'],
 
@@ -223,7 +223,7 @@ class TypeReconciliationTest extends TestCase
             'numeric' => ['numeric-string', 'numeric', 'string'],
 
             'nullableClassString' => ['null', 'falsy', '?class-string'],
-            'mixedOrNullNotFalsy' => ['nonempty-mixed', '!falsy', 'mixed|null'],
+            'mixedOrNullNotFalsy' => ['non-empty-mixed', '!falsy', 'mixed|null'],
             'mixedOrNullFalsy' => ['empty-mixed|null', 'falsy', 'mixed|null'],
         ];
     }

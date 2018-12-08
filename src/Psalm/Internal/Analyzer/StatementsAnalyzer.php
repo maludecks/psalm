@@ -1076,6 +1076,7 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
                                 $single_item_key_type,
                                 $item_key_type,
                                 false,
+                                true,
                                 30
                             );
                         } else {
@@ -1145,6 +1146,7 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
                         $single_item_value_type,
                         $item_value_type,
                         false,
+                        true,
                         30
                     );
                 } else {

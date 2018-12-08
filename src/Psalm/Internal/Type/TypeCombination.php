@@ -23,6 +23,7 @@ use Psalm\Type\Atomic\TLiteralString;
 use Psalm\Type\Atomic\TMixed;
 use Psalm\Type\Atomic\TNamedObject;
 use Psalm\Type\Atomic\TNonEmptyArray;
+use Psalm\Type\Atomic\TNonEmptyMixed;
 use Psalm\Type\Atomic\TNull;
 use Psalm\Type\Atomic\TNumeric;
 use Psalm\Type\Atomic\TObject;
@@ -186,7 +187,7 @@ class TypeCombination
         }
 
         if ($combination->empty_mixed && $combination->non_empty_mixed) {
-            $combination->value_types['mixed'] = new TMixed($combination->mixed_from_loop_isset);
+            $combination->value_types['mixed'] = new TMixed((bool) $combination->mixed_from_loop_isset);
         }
 
         $new_types = [];
@@ -366,7 +367,7 @@ class TypeCombination
             }
 
             if (!$allow_mixed_union) {
-                return Type::getMixed();
+                return Type::getMixed((bool) $combination->mixed_from_loop_isset);
             }
         }
 
