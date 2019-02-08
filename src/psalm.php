@@ -578,6 +578,7 @@ if (isset($options['update-baseline'])) {
             $baselineFile,
             IssueBuffer::getIssuesData()
         );
+        IssueBuffer::setFixedErrorCount(ErrorBaseline::getFixedIssuesCount());
     } catch (\Psalm\Exception\ConfigException $exception) {
         die('Could not update baseline file: ' . $exception->getMessage());
     }

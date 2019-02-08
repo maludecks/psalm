@@ -33,6 +33,11 @@ class IssueBuffer
     protected static $error_count = 0;
 
     /**
+     * @var int
+     */
+    protected static $fixed_error_count = 0;
+
+    /**
      * @var array<string, bool>
      */
     protected static $emitted = [];
@@ -203,6 +208,15 @@ class IssueBuffer
     }
 
     /**
+     * @param int       $fixed_errors
+     * @return void
+     */
+    public static function setFixedErrorCount(int $fixed_errors)
+    {
+        self::$fixed_error_count = $fixed_errors;
+    }
+
+    /**
      * @param array<int, array{severity: string, line_from: int, line_to: int, type: string, message: string,
      *  file_name: string, file_path: string, snippet: string, from: int, to: int, snippet_from: int,
      *  snippet_to: int, column_from: int, column_to: int}> $issues_data
@@ -319,6 +333,11 @@ class IssueBuffer
         }
 
         if ($project_analyzer->output_format === ProjectAnalyzer::TYPE_CONSOLE) {
+            if (self::$fixed_error_count > 0) {
+                echo str_repeat('-', 30) . "\n";
+                echo self::$fixed_error_count . ' errors fixed' . "\n";
+            }
+
             echo str_repeat('-', 30) . "\n";
 
             if ($error_count) {

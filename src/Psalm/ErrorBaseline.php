@@ -5,6 +5,9 @@ use Psalm\Internal\Provider\FileProvider;
 
 class ErrorBaseline
 {
+    /** @var int */
+    protected static $fixedIssuesCount = 0;
+
     /**
      * @param FileProvider $fileProvider
      * @param string $baselineFile
@@ -75,6 +78,14 @@ class ErrorBaseline
     }
 
     /**
+     * @return int
+     */
+    public static function getFixedIssuesCount()
+    {
+        return self::$fixedIssuesCount;
+    }
+
+    /**
      * @param FileProvider $fileProvider
      * @param string $baselineFile
      * @param array<array{file_name: string, type: string, severity: string, selected_text: string}> $issues
@@ -88,6 +99,11 @@ class ErrorBaseline
 
         foreach ($existingIssues as $file => &$existingIssuesCount) {
             if (!isset($newIssues[$file])) {
+                self::$fixedIssuesCount += array_reduce($existingIssuesCount,
+                    function(int $carry, array $existingIssue): int {
+                        return $carry + (int)$existingIssue['o'];
+                    }, 0);
+
                 unset($existingIssues[$file]);
 
                 continue;
@@ -95,9 +111,17 @@ class ErrorBaseline
 
             foreach ($existingIssuesCount as $issueType => $existingIssueType) {
                 if (!isset($newIssues[$file][$issueType])) {
+                    self::$fixedIssuesCount += (int)$existingIssueType['o'];
+
                     unset($existingIssuesCount[$issueType]);
 
                     continue;
+                }
+
+                $fixedIssuesCount = $existingIssuesCount[$issueType]['o'] - $newIssues[$file][$issueType]['o'];
+
+                if ($fixedIssuesCount > 0) {
+                    self::$fixedIssuesCount += (int)$fixedIssuesCount;
                 }
 
                 $existingIssuesCount[$issueType]['o'] = min(
